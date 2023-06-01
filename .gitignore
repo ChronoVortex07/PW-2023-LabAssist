@@ -1,1 +1,6 @@
 dataset
+.vscode
+checkpoints
+lightning_logs
+train.ipynb
+legacy_stuff
