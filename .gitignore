@@ -4,3 +4,5 @@ checkpoints
 lightning_logs
 train.ipynb
 legacy_stuff
+test.py
+test.ipynb
