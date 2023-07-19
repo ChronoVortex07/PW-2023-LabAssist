@@ -13,7 +13,7 @@ from typing import Tuple, Dict
 
 logging.getLogger('libav').setLevel(logging.ERROR)  # removes warning: deprecated pixel format used
 
-class VideoPlayer(ctk.CTkFrame):
+class video_player(ctk.CTkFrame):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         
@@ -26,8 +26,11 @@ class VideoPlayer(ctk.CTkFrame):
         self.video_display = self.TkinterVideo(self, keep_aspect=True, bg="black")
         self.video_display.grid(row=0, column=0, sticky="nsew")
         
-        self.progress_bar = self.CustomProgressBar(self, height=15, bg='black')
-        self.progress_bar.grid(row=1, column=0, sticky="nsew")
+        self.progress_bar_frame = ctk.CTkFrame(self, height=30, corner_radius=0)
+        self.progress_bar_frame.grid(row=1, column=0, sticky="nsew", padx=5, pady=7)
+        self.progress_bar = self.CustomProgressBar(self.progress_bar_frame, height=15)
+        self.progress_bar.pack(fill="both", expand=True)
+        self.progress_bar.update_section_colors(['gray'])
         
         self.video_display.bind("<<Duration>>", self._update_duration)
         self.video_display.bind("<<SecondChanged>>", self._seek_progress_bar)
@@ -35,12 +38,13 @@ class VideoPlayer(ctk.CTkFrame):
         self.progress_bar.bind('<<seek_video>>', self._seek_video)
         
     def load(self, path):
-        self.video_display.bind("<<Loaded>>", lambda event:print("Loaded"))
         self.video_path = path
         self.video_display.load(path)
-        self.progress_bar.update_section_colors(['gray'])
+        self.progress_bar.seek(0)
         self.video_display.play()
-        self.after(100, lambda:self.video_display.pause())
+        
+    def stop(self):
+        self.video_display.stop()
         
     def _update_duration(self, event):
         self.duration = self.video_display.video_info()["duration"]
@@ -91,7 +95,11 @@ class VideoPlayer(ctk.CTkFrame):
             self.slider_value = normalized_value * 100  # Map the normalized value to the desired range
             
         def update_section_colors(self, section_colors):
-            self.section_colors = section_colors
+            print(section_colors)
+            if section_colors is not None:
+                self.section_colors = section_colors
+            else:
+                self.section_colors = ['gray']
             self.repaint_canvas(None)
             
         def seek(self, value):
@@ -138,8 +146,6 @@ class VideoPlayer(ctk.CTkFrame):
             self.bind("<<Destroy>>", self.stop)
             self.bind("<<FrameGenerated>>", self._display_frame)
             self.bind("<Button-1>", self._play_pause)
-            
-            self.play_image = Image.open("interface/src/play_img.png")
         
         def keep_aspect(self, keep_aspect: bool):
             """ keeps the aspect ratio when resizing the image """
@@ -387,7 +393,7 @@ if __name__ == "__main__":
     window.title("Video Playback Slider")
     window.geometry("800x600")
 
-    video_display = VideoPlayer(window, fg_color="black")
+    video_display = video_player(window, fg_color="black")
     video_display.pack(fill="both", expand=True)
     video_display.load('C:/Users/zedon/Documents/GitHub/PW-2023-LabAssist/Zedong_fullTitration_1.mp4')
 
