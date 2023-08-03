@@ -107,8 +107,8 @@ class VideoSelector(ctk.CTkFrame):
                 f'Delete {selected_task_count} tasks',
                 f'Set state of {selected_task_count} tasks to Correct',
                 f'Set state of {selected_task_count} tasks to Incorrect',
-                f'Set state of {selected_task_count} tasks to Unsure'
-                f'Set state of {selected_task_count} tasks to Unlabelled'
+                f'Set state of {selected_task_count} tasks to Unsure',
+                f'Set state of {selected_task_count} tasks to Unlabelled',
             ])
             self.option_menu.set(f'Predict {selected_task_count} tasks')
         elif selected_task_count == 0:

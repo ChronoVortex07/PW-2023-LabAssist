@@ -10,7 +10,8 @@ from prediction_details import PredictionDetails
 
 from scripts import deploy
 
-# ctk.set_appearance_mode('light')
+ctk.set_default_color_theme('dark-blue')
+ctk.set_appearance_mode('light')
 
 class mainWindow(ctk.CTk):
     def __init__(self, fg_color: str | Tuple[str, str] | None = None, **kwargs):

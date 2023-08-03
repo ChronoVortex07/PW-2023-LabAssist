@@ -61,7 +61,7 @@ class SelectorItem(ctk.CTkFrame):
         self._state_display.grid(row=1, column=1, sticky="nw", padx=5)
         self._state_display.bind('<Button-1>', self.on_click)
         
-        self._progress_bar = ctk.CTkProgressBar(self, height=14)
+        self._progress_bar = ctk.CTkProgressBar(self, height=14, fg_color='#262626')
         self._progress_bar.set(0)
         self._progress_bar.grid(row=1, column=1, sticky="ew", padx=5, pady=10)
         self._progress_bar.bind('<Button-1>', self.on_click)
@@ -151,7 +151,8 @@ if __name__ == '__main__':
     root.geometry('400x120')
     item = SelectorItem(root, set_active_callback=lambda x: print(x), update_selection_callback=lambda: print('update'))
     item.set_video_path('C:\\Users\\User\\Desktop\\test.mp4')
-    item.update_state('Unsure')
+    item.update_state('Incorrect')
+    item.set_progress(0.5)
     item.pack(expand=True, fill='both')
     root.mainloop()
     

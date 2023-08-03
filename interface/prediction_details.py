@@ -7,10 +7,10 @@ class PredictionDetails(ctk.CTkScrollableFrame):
         super().__init__(*args, **kwargs)
         self.grid_columnconfigure(0, weight=1)
         
-        self.caption = ctk.CTkLabel(self, text='Prediction Details', font=('Arial', 20), fg_color='#a3a3a3', corner_radius=0, anchor='center')
+        self.caption = ctk.CTkLabel(self, text='Prediction Details', font=('Arial', 20), fg_color=('#757575', '#a3a3a3'), corner_radius=0, anchor='center')
         self.caption.grid(row=0, column=0, sticky='nsew', padx=10, pady=10)
         
-        self.flask_swirl_prediction = ctk.CTkFrame(self, corner_radius=0, fg_color='#454545')
+        self.flask_swirl_prediction = ctk.CTkFrame(self, corner_radius=0, fg_color=('#919191', '#454545'))
         self.flask_swirl_prediction.grid(row=1, column=0, sticky='nsew', padx=10, pady=10)
         self.flask_swirl_prediction.grid_columnconfigure(0, weight=1)
         
@@ -32,7 +32,7 @@ class PredictionDetails(ctk.CTkScrollableFrame):
         self.unmoving_bar = ctk.CTkProgressBar(self.flask_swirl_prediction, width=200, height=30, corner_radius=0, bg_color='#a3a3a3', fg_color='#a3a3a3')
         self.unmoving_bar.grid(row=6, column=0, sticky='ew', padx=10, pady=10)
         
-        self.tile_prediction = ctk.CTkFrame(self, corner_radius=0, fg_color='#454545')
+        self.tile_prediction = ctk.CTkFrame(self, corner_radius=0, fg_color=('#919191', '#454545'))
         self.tile_prediction.grid(row=2, column=0, sticky='nsew', padx=10, pady=10)
         self.tile_prediction.grid_columnconfigure(0, weight=1)
         
