@@ -2,7 +2,7 @@ import tkinter as tk
 
 import customtkinter as ctk
 
-class prediction_details(ctk.CTkScrollableFrame):
+class PredictionDetails(ctk.CTkScrollableFrame):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.grid_columnconfigure(0, weight=1)
@@ -64,7 +64,7 @@ if __name__ == '__main__':
     root = tk.Tk()
     root.title('Prediction Details')
     root.geometry('800x600')
-    prediction_details = prediction_details(root)
+    prediction_details = PredictionDetails(root)
     prediction_details.pack(expand=True, fill='both')
     prediction_details.set_flask_swirl_probabilities(0.5, 0.3, 0.2)
     root.mainloop()
