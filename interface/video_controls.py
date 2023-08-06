@@ -3,6 +3,7 @@ import customtkinter as ctk
 
 import logging
 import tkinter as tk
+from PIL import Image
 
 logging.getLogger('libav').setLevel(logging.ERROR)  # removes warning: deprecated pixel format used
 
@@ -10,7 +11,9 @@ class VideoControls(ctk.CTkFrame):
     def __init__(self, *args, video_display_callback = None, play_pause_callback = None, fast_forward_callback = None, **kwargs):
         super().__init__(*args, **kwargs)
         
-        self._is_playing = False
+        self.configure(fg_color=('#778DA9','#415A77'), corner_radius=0)
+        
+        self._is_paused = False
         self._play_pause_callback = play_pause_callback if play_pause_callback != None else lambda x: None
         self._fast_forward_callback = fast_forward_callback if fast_forward_callback != None else lambda x: None
         
@@ -18,48 +21,55 @@ class VideoControls(ctk.CTkFrame):
         self.grid_columnconfigure(4, weight=1)
         self.grid_rowconfigure(0, weight=1)
         
-        self.fast_backward_button = ctk.CTkButton(
-            self, text='⏪', command=self.fast_backward,
-            text_color=('black','white'),
-            fg_color=('gray86', 'gray17'),
-            hover_color=('#a3a3a3','#4a4a4a'),
-            corner_radius=0, width=5, height=5, font=('Arial', 15)
+        self._fast_backward_image = ctk.CTkImage(Image.open('src/light/fast_backwards.png'), Image.open('src/dark/fast_backwards.png'), size=(24, 24))
+        self._fast_backward_button = ctk.CTkButton(
+            self, text=None, image=self._fast_backward_image, command=self.fast_backward,
+            fg_color=('#778DA9','#415A77'),
+            hover_color=('#537A97','#364B63'),
+            corner_radius=0, width=5, height=5
         )
-        self.fast_backward_button.grid(row=0, column=0, sticky="ew", padx=5, pady=7)
+        self._fast_backward_button.grid(row=0, column=0, sticky="ew", padx=5, pady=7)
         
-        self.play_button = ctk.CTkButton(
-            self, text='▶', command=self.play_pause, 
-            text_color=('black','white'),
-            fg_color=('gray86', 'gray17'),
-            hover_color=('#a3a3a3','#4a4a4a'), 
-            corner_radius=0, width=5, height=5, font=('Arial', 15)
+        self._play_image = ctk.CTkImage(Image.open('src/light/play.png'), Image.open('src/dark/play.png'), size=(22, 22))
+        self._pause_image = ctk.CTkImage(Image.open('src/light/pause.png'), Image.open('src/dark/pause.png'), size=(22, 22))
+        self._play_pause_button = ctk.CTkButton(
+            self, text=None, image=self._play_image, command=self.play_pause,
+            fg_color=('#778DA9','#415A77'),
+            hover_color=('#537A97','#364B63'),
+            corner_radius=0, width=5, height=5
         )
-        self.play_button.grid(row=0, column=1, sticky="ew", padx=5, pady=7)
+        self._play_pause_button.grid(row=0, column=1, sticky="ew", padx=5, pady=7)
         
-        self.fast_forward_button = ctk.CTkButton(
-            self, text='⏩', command=self.fast_forward,
-            text_color=('black','white'),
-            fg_color=('gray86', 'gray17'),
-            hover_color=('#a3a3a3','#4a4a4a'),
-            corner_radius=0, width=5, height=5, font=('Arial', 15)
+        self._fast_forward_image = ctk.CTkImage(Image.open('src/light/fast_forward.png'), Image.open('src/dark/fast_forward.png'), size=(24, 24))
+        self._fast_forward_button = ctk.CTkButton(
+            self, text=None, image=self._fast_forward_image, command=self.fast_forward,
+            fg_color=('#778DA9','#415A77'),
+            hover_color=('#537A97','#364B63'),
+            corner_radius=0, width=5, height=5
         )
-        self.fast_forward_button.grid(row=0, column=2, sticky="ew", padx=5, pady=7)
+        self._fast_forward_button.grid(row=0, column=2, sticky="ew", padx=5, pady=7)
+        
+        self._time_display = ctk.CTkLabel(self, text='00:00', font=('Arial', 14, 'bold'), anchor='center', text_color=('#1B263B','#FFFFFF'))
+        self._time_display.grid(row=0, column=3, sticky="ew", padx=5, pady=7)
         
         self._progress_bar = CustomProgressBar(self, video_display_callback=video_display_callback, height=15)
         self._progress_bar.grid(row=0, column=4, sticky="ew", padx=10, pady=12)
         
         self._progress_bar.update_section_colors(['gray'])
         
-    def play_pause(self, state=None):
+    def play_pause(self, event=None, state=None):
         if state is not None:
-            if self._is_playing:
-                self.play_button.configure(text='▶')
-                self._is_playing = False
-            else:
-                self.play_button.configure(text='⏸')
-                self._is_playing = True
+            self._is_paused = not state
         else:
-            self._play_pause_callback(not self._is_playing)
+            self._play_pause_callback(self._is_paused)
+            self._is_paused = not self._is_paused
+        if self._is_paused:
+            self._play_pause_button.configure(image=self._pause_image)
+        else:
+            self._play_pause_button.configure(image=self._play_image)
+            
+    def update_time_display(self, time):
+        self._time_display.configure(text='{:02d}:{:02d}'.format(int(time/60), int(time%60)))        
         
     def fast_backward(self):
         self._fast_forward_callback(-5)
@@ -127,7 +137,7 @@ class CustomProgressBar(ctk.CTkCanvas):
             
 if __name__ == "__main__":
     def video_display_callback(val):
-        print(val)
+        pass
     window = ctk.CTk()
     window.title("Video Playback Slider")
     window.geometry("600x40")
@@ -137,5 +147,5 @@ if __name__ == "__main__":
     video_controls.pack(expand=True, fill=tk.BOTH)
     video_controls.update_section_colors(['#EF476F','#FFD166','#06D671', '#808080'])
     video_controls.seek(0.5)
-    # ctk.set_appearance_mode('light')
+    video_controls.update_time_display(999)
     window.mainloop()

@@ -48,7 +48,16 @@ class VideoDisplay(tk.Label):
 
         self.bind("<<Destroy>>", self.stop)
         self.bind("<<FrameGenerated>>", self._display_frame)
-        self.bind("<Button-1>", lambda event: self._play_pause_callback(self._paused))
+        self.bind("<Button-1>", self.play_pause)
+        
+    def play_pause(self, event=None, state=None):
+        if state is not None:
+            self._paused = state
+        else:
+            self._paused = not self._paused
+            self._play_pause_callback(self._paused)
+        if not self._paused:
+            self.play()
     
     def keep_aspect(self, keep_aspect: bool):
         """ keeps the aspect ratio when resizing the image """

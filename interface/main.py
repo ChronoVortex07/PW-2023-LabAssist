@@ -7,11 +7,11 @@ import json
 from video_selector import VideoSelector
 from video_player import VideoPlayer
 from prediction_details import PredictionDetails
+from side_bar import SideBar
 
 from scripts import deploy
 
-ctk.set_default_color_theme('dark-blue')
-ctk.set_appearance_mode('light')
+# ctk.set_appearance_mode('light')
 
 class mainWindow(ctk.CTk):
     def __init__(self, fg_color: str | Tuple[str, str] | None = None, **kwargs):
@@ -21,36 +21,34 @@ class mainWindow(ctk.CTk):
         
         self._active_video = None
         
-        self.grid_columnconfigure(0, weight=1)
-        self.grid_columnconfigure(1, weight=15)
-        self.grid_columnconfigure(2, weight=1)
-        self.grid_rowconfigure(0, weight=0)
-        self.grid_rowconfigure(1, weight=1)
+        self.grid_columnconfigure(0, weight=0)
+        self.grid_columnconfigure(1, weight=5)
+        self.grid_columnconfigure(2, weight=20)
+        self.grid_columnconfigure(3, weight=4)
+        self.grid_rowconfigure(0, weight=1)
         
-        self.predictor = deploy.multiThreadedVideoPredictor()
+        self.predictor = deploy.multiThreadedVideoPredictor(num_workers=2)
         
-        self.top_bar = ctk.CTkFrame(self, corner_radius=0, bg_color='#a3a3a3')
-        self.top_bar.grid(row=0, column=0, columnspan=2, sticky='nsew')
-        self.upload_button = ctk.CTkButton(self.top_bar, text='Upload', command=self.upload, fg_color=('#a3a3a3','#4a4a4a'), corner_radius=0)
-        self.upload_button.grid(row=0, column=0, sticky='nsew')
-        self.export_button = ctk.CTkButton(self.top_bar, text='Export', command=self.export, fg_color=('#a3a3a3','#4a4a4a'), corner_radius=0)
-        self.export_button.grid(row=0, column=1, sticky='nsew')
+        self.side_bar = SideBar(self, upload_callback=self.upload, export_callback=self.export, settings_callback=self.settings)
+        self.side_bar.grid(row=0, column=0, sticky='nsew')
         
         self.video_selector = VideoSelector(self, active_video_change_callback=self.change_video, start_prediction_callback=self.predict_video)
-        self.video_selector.grid(row=1, column=0, sticky='nsew')
+        self.video_selector.grid(row=0, column=1, sticky='nsew')
         
         self.video_player = VideoPlayer(self, video_progress_callback=self.update_predictions)
-        self.video_player.grid(row=1, column=1, sticky='nsew')
+        self.video_player.grid(row=0, column=2, sticky='nsew')
         
         self.prediction_details = PredictionDetails(self)
-        self.prediction_details.grid(row=1, column=2, columnspan=2, sticky='nsew')
+        self.prediction_details.grid(row=0, column=3, sticky='nsew')
+        
+        self.video_player.update_video_bg(ctk.get_appearance_mode())
     
-    def upload(self):
+    def upload(self, event=None):
         file_paths = tk.filedialog.askopenfilenames(filetypes=[("Video Files", "*.mp4;*.avi;*.mov;*.mkv")])  
         for file_path in file_paths:
             self.video_selector.add_video(file_path) 
             
-    def export(self):
+    def export(self, event=None):
         def convert_np_array_to_list(arr):
             if isinstance(arr, np.ndarray):
                 return arr.tolist()
@@ -70,6 +68,9 @@ class mainWindow(ctk.CTk):
         export_location = tk.filedialog.asksaveasfilename(filetypes=[("JSON Files", "*.json")])
         with open(export_location+'.json', 'w') as outfile:
             json.dump(filtered_json, outfile, default=convert_np_array_to_list, indent=4)
+            
+    def settings(self, event=None):
+        pass
             
     def change_video(self, video):
         self._active_video = video
