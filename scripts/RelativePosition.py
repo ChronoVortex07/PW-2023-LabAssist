@@ -21,13 +21,6 @@ class FunnelAboveBurette(Warning):
 class RatioError(Exception):
     pass
 
-# Deprecated
-accepted_ratios = {}
-with open("accepted_ratios.txt", "r") as file:
-    for line in file:
-        line = line.split("\n")[0]
-        kind, minimum, maximum = line.split("\t")
-        accepted_ratios[kind] = {"min": float(minimum), "max": float(maximum)}
 
 
 class obj:
@@ -66,8 +59,8 @@ class result:
 def ConvertPredictionToDict(model, pic):
         res = model(pic)[0]
         items = res.names
-        classes = np.array(res.boxes.cls)
-        boxes = np.array(res.boxes.xyxy)
+        classes = np.array(res.boxes.cls.cpu().numpy())
+        boxes = np.array(res.boxes.xyxy.cpu().numpy())
 
         master = {}
         for i in items.items():
@@ -147,10 +140,10 @@ def rel_pos(model, pic, x_tol=0.25, y_tol=0.1):
 
     # Evaluating the objects detected
     main_objs = {"Conical flask_b": [], "Burette": [], "Pipette": [], "Conical flask_p": []}
-
+    too_high = []
     flask_burette = list(it.product(master["Conical flask"], master["Burette"]))
     for i in flask_burette:
-        too_high = []
+        
         res = _main_setup(*i)
         if res == (True, False):
             main_objs["Conical flask_b"].append(i[0])
@@ -226,6 +219,6 @@ def plttr(pic: np.ndarray, master: dict, x_tol=0.25, y_tol=0.1, tpe="master"):
 
 
 if __name__ == "__main__":
-    model = YOLO("weights/best.pt")
-    pic = cv.imread("test pics/IMG_3910_cs.jpeg")
+    model = YOLO("models/object_model.pt")
+    pic = cv.imread("IMG_3910_cs.jpeg")
     rel_pos(model, pic)

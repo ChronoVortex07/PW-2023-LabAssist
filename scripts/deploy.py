@@ -52,7 +52,7 @@ class multiThreadedVideoPredictor:
         self._num_workers = num_workers
         
         self._model = VideoClassifier()
-        self._model.load_state_dict(torch.load('model.pth'))
+        self._model.load_state_dict(torch.load('models/action_model.pth'))
         self._model.eval()
         
         self._video_transform = Compose([
@@ -78,9 +78,21 @@ class multiThreadedVideoPredictor:
             p.start()
             self._processes.append(p)
             
-    def kill_workers(self):
-        for i in self._processes:
+    def kill_workers(self, num_workers:int=None):
+        if num_workers is None:
+            num_workers = self._num_workers
+        for _ in range(num_workers):
             self._waiting_queue.put(None)
+            
+    def update_workers(self, num_workers:int):
+        if num_workers > self._num_workers:
+            self.spawn_workers(num_workers-self._num_workers)
+        elif num_workers < self._num_workers:
+            self.kill_workers(self._num_workers-num_workers)
+        self._num_workers = num_workers
+        
+    def get_num_workers(self):
+        return self._num_workers
     
     def predict_video(self, video_path):
         p = self.prep_worker(self._waiting_queue, self._result_dict, video_path)

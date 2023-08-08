@@ -8,15 +8,14 @@ from video_selector import VideoSelector
 from video_player import VideoPlayer
 from prediction_details import PredictionDetails
 from side_bar import SideBar
+from settings_menu import SettingsMenu
 
 from scripts import deploy
-
-# ctk.set_appearance_mode('light')
 
 class mainWindow(ctk.CTk):
     def __init__(self, fg_color: str | Tuple[str, str] | None = None, **kwargs):
         super().__init__(fg_color, **kwargs)    
-        self.title("Titration Predictor")
+        self.title("LabAssist Titration Predictor")
         self.geometry("1920x1080")
         
         self._active_video = None
@@ -29,7 +28,7 @@ class mainWindow(ctk.CTk):
         
         self.predictor = deploy.multiThreadedVideoPredictor(num_workers=2)
         
-        self.side_bar = SideBar(self, upload_callback=self.upload, export_callback=self.export, settings_callback=self.settings)
+        self.side_bar = SideBar(self, upload_callback=self.upload, export_callback=self.export, settings_callback=self.open_settings)
         self.side_bar.grid(row=0, column=0, sticky='nsew')
         
         self.video_selector = VideoSelector(self, active_video_change_callback=self.change_video, start_prediction_callback=self.predict_video)
@@ -42,11 +41,32 @@ class mainWindow(ctk.CTk):
         self.prediction_details.grid(row=0, column=3, sticky='nsew')
         
         self.video_player.update_video_bg(ctk.get_appearance_mode())
-    
+        
+        self.settings_menu = None
+        self.prediction_details.log("Welcome to using LabAssist Titration Predictor")
+        self.settings_update()
+        
+    def open_settings(self, event=None):
+        if self.settings_menu is None or not self.settings_menu.winfo_exists():
+            self.settings_menu = SettingsMenu(close_callback=self.settings_update, mode_switch_callback=self.video_player.update_video_bg)
+        else:
+            self.settings_menu.focus()
+
+    def settings_update(self):
+        with open('settings.json', 'r') as f:
+            settings = json.load(f)
+        self.predictor.update_workers(settings['num_workers'])
+        ctk.set_appearance_mode(settings['appearance_mode'])
+        self.video_player.update_video_bg()
+        self.prediction_details.log("Settings updated")
+        self.prediction_details.log(f"Number of prediction threads: {self.predictor.get_num_workers()}")
+        self.prediction_details.log(f"Appearance mode: {settings['appearance_mode']}")
+        
     def upload(self, event=None):
         file_paths = tk.filedialog.askopenfilenames(filetypes=[("Video Files", "*.mp4;*.avi;*.mov;*.mkv")])  
         for file_path in file_paths:
             self.video_selector.add_video(file_path) 
+        self.prediction_details.log(f"Uploaded {len(file_paths)} videos")
             
     def export(self, event=None):
         def convert_np_array_to_list(arr):
@@ -68,9 +88,7 @@ class mainWindow(ctk.CTk):
         export_location = tk.filedialog.asksaveasfilename(filetypes=[("JSON Files", "*.json")])
         with open(export_location+'.json', 'w') as outfile:
             json.dump(filtered_json, outfile, default=convert_np_array_to_list, indent=4)
-            
-    def settings(self, event=None):
-        pass
+        self.prediction_details.log(f"Exported {len(filtered_json)} videos")
             
     def change_video(self, video):
         self._active_video = video
@@ -82,6 +100,7 @@ class mainWindow(ctk.CTk):
             self.prediction_details.set_flask_swirl_probabilities(*metadata['softmax_preds'][0])
         else:
             self.prediction_details.set_flask_swirl_probabilities(0,0,0)
+        self.prediction_details.log(f"Loaded {video.get_video_path()}")
         
     def predict_video(self, video):
         self.predictor.predict_video(video.get_video_path())
@@ -89,6 +108,7 @@ class mainWindow(ctk.CTk):
         video.prediction_callback(self.predictor)
         video.update_state('Predicting')
         video.set_progress(0)
+        self.prediction_details.log(f"Started prediction for {video.get_video_path()}")
         
     def update_predictions(self):
         if self._active_video != None:
