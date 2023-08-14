@@ -1,27 +1,10 @@
 import numpy as np
-import cv2 as cv
-import itertools as it
-from warnings import warn
-from ultralytics import YOLO
+from ultralytics.models.yolo import YOLO
 
-
-# Warnings
-class BuretteTooHigh(Warning):
-   pass
-
-class NoMainSetup(Warning):
-   pass
-
-class WhiteTileNotPresent(Warning):
-    pass
-
-class FunnelAboveBurette(Warning):
-    pass
-
-class RatioError(Exception):
-    pass
-
-
+import sys
+sys.path.append('pytorchvideo')
+from pytorchvideo.data.encoded_video import EncodedVideo
+import cv2
 
 class obj:
     def __init__(self, kind, x_1, y_1, x_2, y_2):
@@ -48,31 +31,23 @@ class obj:
     def __repr__(self):
         return f"{self.kind} at ({self.left:3.0f}, {self.top:3.0f}), ({self.right:3.0f}, {self.bottom:3.0f})"
     
-
-class result:
-    def __init__(self, master, **kwargs):
-        self.master = master
-        for k, v in kwargs.items():
-            self.__setattr__(k, v)
-
-
 def ConvertPredictionToDict(model, pic):
-        res = model(pic)[0]
-        items = res.names
-        classes = np.array(res.boxes.cls.cpu().numpy())
-        boxes = np.array(res.boxes.xyxy.cpu().numpy())
+    res = model.predict(pic, verbose=False)[0]
+    items = res.names
+    classes = np.array(res.boxes.cls.cpu().numpy())
+    boxes = np.array(res.boxes.xyxy.cpu().numpy())
 
-        master = {}
-        for i in items.items():
-            master[i[1]] = []
+    master = {}
+    for i in items.items():
+        master[i[1]] = []
 
-        for c, b in zip(classes, boxes):
-            try:
-                master[items[c]].append(obj(items[c], *b))
-            except RatioError:
-                pass
-
-        return master
+    for c, b in zip(classes, boxes):
+        try:
+            master[items[c]].append(obj(items[c], *b))
+        except:
+            print("Ratio error")
+            pass
+    return master
     
 
 def rel_pos(model, pic, x_tol=0.25, y_tol=0.1):
@@ -95,7 +70,7 @@ def rel_pos(model, pic, x_tol=0.25, y_tol=0.1):
             return False
         return True
     
-    def _funnel_notcorrect(burette, funnel):
+    def _funnel_not_correct(burette, funnel):
         if not funnel.bottom + y_tol*funnel.y >= burette.top:
             return False
         if not funnel.left - x_tol*funnel.x <= burette.left:
@@ -103,27 +78,6 @@ def rel_pos(model, pic, x_tol=0.25, y_tol=0.1):
         if not funnel.right + x_tol*funnel.x >= burette.right:
             return False
         return True
-    
-    def _pipette_in_flask(flask, pipette):
-        # No tolerance for flask, pipette
-        if not flask.top <= pipette.bottom:
-            return False
-        # Highly likely for this setup to be slanted so can only ensure one condition
-        if not flask.left - x_tol*flask.x <= pipette.left and not flask.right + x_tol*flask.x >= pipette.right:
-            return False
-        return True
-    
-
-    def _closest(arr):
-        def _dist(o1, o2):
-            x1 = np.mean((o1.left, o1.right))
-            x2 = np.mean((o2.left, o2.right))
-            y1 = np.mean((o1.top, o1.bottom))
-            y2 = np.mean((o2.top, o2.bottom))
-            return np.sqrt((x1-x2)**2 + (y1-y2)**2)
-    
-        dist = np.array(map(lambda x: _dist(*x), arr))
-        return arr[np.argmin(dist)]
     
     def _biggest(arr, return_index=False):
         area = np.array(map(lambda a: a.x*a.y, arr))
@@ -139,86 +93,87 @@ def rel_pos(model, pic, x_tol=0.25, y_tol=0.1):
     # plttr(pic, master)
 
     # Evaluating the objects detected
-    main_objs = {"Conical flask_b": [], "Burette": [], "Pipette": [], "Conical flask_p": []}
-    too_high = []
-    flask_burette = list(it.product(master["Conical flask"], master["Burette"]))
-    for i in flask_burette:
+    output = {
+        "white_tile_present": None,
+        "funnel_present": None,
+        "burette_too_high": None,
+    }
+    
+    # Checking for white tile
+    if len(master["Conical flask"]) > 0 and len(master["White tile"]) > 0:
+        flask = _biggest(master["Conical flask"])
+        for tile in master["White tile"]:
+            if _tile_correct(tile, flask):
+                output["white_tile_present"] = True
+                break
+        else:
+            output["white_tile_present"] = False
+    elif len(master["Conical flask"]) > 0:
+        output["white_tile_present"] = False
         
-        res = _main_setup(*i)
-        if res == (True, False):
-            main_objs["Conical flask_b"].append(i[0])
-            main_objs["Burette"].append(i[1])
-        elif res == (True, True):
-            # sides match, but burette too high
-            too_high.append(i)
-
-    # If there exist multiple main setups, take the biggest one
-    if len(main_objs["Burette"]) > 0:
-        max_index = _biggest(main_objs["Burette"], return_index=True)
-        main_objs["Conical flask_b"] = main_objs["Conical flask_b"][max_index]
-        main_objs["Burette"] = main_objs["Burette"][max_index]
-
-    # No properly positioned burette, flask found, using closest burette, flask where burette is too high        
-    if len(too_high) !=0 and "Conical flask" not in main_objs.keys():
-        warn("Lower Your Burette!", BuretteTooHigh)
-        closest_obj = _closest(too_high)
-        main_objs["Conical flask_b"], main_objs["Burette"] = closest_obj[0], closest_obj[1]
-
-    # Checking of funnel, tile depends on existence of main setup
-    if main_objs["Burette"] != []:
-        tile_flask =list(it.product(master["White tile"], [main_objs["Conical flask_b"]]))
-        for i in tile_flask:
-            if _tile_correct(*i):
-                main_objs["White tile"] = i[0]
+    # Checking for funnel
+    if len(master["Burette"]) > 0 and len(master["Filter funnel"]) > 0:
+        burette = _biggest(master["Burette"])
+        for funnel in master["Filter funnel"]:
+            if _funnel_not_correct(burette, funnel):
+                output["funnel_present"] = True
                 break
-            warn("Place white tile below conical flask!", WhiteTileNotPresent)
-
-        burette_funnel = list(it.product([main_objs["Burette"]], master["Filter funnel"]))
-        for i in burette_funnel:
-            if _funnel_notcorrect(*i):
-                main_objs["Filter funnel"] = i[1]
-                warn("Remove filter funnel above burette", FunnelAboveBurette)
+        else:
+            output["funnel_present"] = False
+    elif len(master["Burette"]) > 0:
+        output["funnel_present"] = False
+            
+    # Checking for burette too high
+    if len(master["Conical flask"]) > 0 and len(master["Burette"]) > 0:
+        flask = _biggest(master["Conical flask"])
+        for burette in master["Burette"]:
+            res = _main_setup(flask, burette)
+            if res == (True, True):
+                output["burette_too_high"] = True
                 break
-
-    else:
-        warn("???", NoMainSetup)
-
-    # # Finding leaky pipette
-    # pipette_flask = list(it.product(master["Pipette"], master["Conical flask"]))
-    # for i in pipette_flask:
-    #     if _pipette_in_flask(*i):
-    #         main_objs["Pipette"].append(i[0])
-    #         main_objs["Conical flask_p"].append(i[1])
-    
-    # # If there exist multiple pipette/flask, take the biggest one
-    # max_index = _biggest(main_objs["Pipette"], return_index=True)
-    # main_objs["Pipette"] = main_objs["Pipette"][max_index]
-    # main_objs["Conical flask_p"] = main_objs["Conical flask_p"][max_index]
-
-
-    # plttr(pic, main_objs, tpe="main")
-    print("End")
-
-    # Prepping to return
-    res = result(main_objs)
-    return main_objs
-
-
-def plttr(pic: np.ndarray, master: dict, x_tol=0.25, y_tol=0.1, tpe="master"):
-    base = pic.copy()
-    if tpe == "master":
-       objs = [j for i in master.items() for j in i[1]]
-    elif tpe == "main":
-       objs = [i[1] for i in master.items() if i[1] != []]
-    for i in objs:
-       cv.rectangle(base, (int(i.left), int(i.top)), (int(i.right), int(i.bottom)), (57, 255, 20), 1)
-       cv.rectangle(base, (int(i.left-x_tol*i.x), int(i.top-y_tol*i.y)), (int(i.right+x_tol*i.x), int(i.bottom+y_tol*i.y)), (31, 199, 0), 1)
-    
-    cv.imshow("", base)
-    cv.waitKey(0)
-
+        else:
+            output["burette_too_high"] = False
+    return output #main_objs
 
 if __name__ == "__main__":
+    # Load the video file
+    def load_frame_at_duration(video_path,time=0):
+        cap = cv2.VideoCapture(video_path)
+        fps = cap.get(cv2.CAP_PROP_FPS)
+        frame_index = int(fps * time)
+        cap.set(cv2.CAP_PROP_POS_FRAMES, frame_index)
+        ret, frame = cap.read()
+        cap.release()
+        cv2.destroyAllWindows()
+        return frame
+
+    def pad_and_resize(frame, target_size):
+        original_height, original_width, _ = frame.shape
+
+        # Calculate the padding size
+        max_dim = max(original_height, original_width)
+        pad_top = (max_dim - original_height) // 2
+        pad_bottom = max_dim - original_height - pad_top
+        pad_left = (max_dim - original_width) // 2
+        pad_right = max_dim - original_width - pad_left
+
+        # Pad the frame with zeros to make it a square
+        padded_frame = cv2.copyMakeBorder(frame, pad_top, pad_bottom, pad_left, pad_right, cv2.BORDER_CONSTANT, value=[0, 0, 0])
+
+        # Resize the padded frame to (640, 640, 3)
+        desired_size = (640, 640)
+        resized_frame = cv2.resize(padded_frame, desired_size)
+        return resized_frame
+    
+    video_path = r"C:\Users\zedon\Desktop\PW-samples\S1_unmoving.mp4"
+    frame = load_frame_at_duration(video_path, 2)
+    resized_frame = pad_and_resize(frame, (640, 640))
+    
     model = YOLO("models/object_model.pt")
-    pic = cv.imread("IMG_3910_cs.jpeg")
-    rel_pos(model, pic)
+    print(rel_pos(model, resized_frame))
+    
+    # cv2.imwrite("frame.png", resized_frame * 255)
+    
+    cv2.imshow("frame", resized_frame)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()

@@ -96,29 +96,29 @@ class PredictionDetails(ctk.CTkScrollableFrame):
         self._stationary_bar.set(stationary)
         self._incorrect_bar.set(incorrect)
         
-    def set_tile_prediction(self, prediction: Literal['Absent', 'Present']):
-        if prediction == 'Absent':
+    def set_tile_prediction(self, prediction):
+        if prediction == False:
             self._tile_present_indicator.configure(text='Absent', text_color='#EF476F')
-        elif prediction == 'Present':
+        elif prediction == True:
             self._tile_present_indicator.configure(text='Present', text_color='#06D6A0')
         else:
-            raise ValueError(f"Invalid prediction value {prediction}")    
+            self._tile_present_indicator.configure(text='-', text_color='#FFFFFF')   
         
-    def set_funnel_prediction(self, prediction: Literal['Absent', 'Present']):
-        if prediction == 'Absent':
-            self._funnel_present_indicator.configure(text='Absent', text_color='#EF476F')
-        elif prediction == 'Present':
-            self._funnel_present_indicator.configure(text='Present', text_color='#06D6A0')
+    def set_funnel_prediction(self, prediction):
+        if prediction == False:
+            self._funnel_present_indicator.configure(text='Absent', text_color='#06D6A0')
+        elif prediction == True:
+            self._funnel_present_indicator.configure(text='Present', text_color='#EF476F')
         else:
-            raise ValueError(f"Invalid prediction value {prediction}")
+            self._funnel_present_indicator.configure(text='-', text_color='#FFFFFF')
         
-    def set_burette_prediction(self, prediction: Literal['Normal', 'Too high']):
-        if prediction == 'Normal':
+    def set_burette_prediction(self, prediction):
+        if prediction == False:
             self._burette_position_indicator.configure(text='Normal', text_color='#06D6A0')
-        elif prediction == 'Too high':
+        elif prediction == True:
             self._burette_position_indicator.configure(text='Too high', text_color='#EF476F')
         else:
-            raise ValueError(f"Invalid prediction value {prediction}")
+            self._burette_position_indicator.configure(text='-', text_color='#FFFFFF')
         
     def log(self, text):
         self._session_log.insert('end', '>>> '+text+'\n')

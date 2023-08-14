@@ -95,12 +95,23 @@ class mainWindow(ctk.CTk):
         self.video_player.stop()
         self.video_player.update_progress_bar_color(video.parse_timeline_colors())
         self.after(100, self.video_player.load, video.get_video_path())
+        
         metadata = self._active_video.get_item_metadata()
+        print(metadata)
         if 'softmax_preds' in metadata:
             self.prediction_details.set_flask_swirl_probabilities(*metadata['softmax_preds'][0])
         else:
             self.prediction_details.set_flask_swirl_probabilities(0,0,0)
         self.prediction_details.log(f"Loaded {video.get_video_path()}")
+        
+        if 'yolo_preds' in metadata:
+            self.prediction_details.set_tile_prediction(metadata['yolo_preds'][0]['white_tile_present'])
+            self.prediction_details.set_funnel_prediction(metadata['yolo_preds'][0]['funnel_present'])
+            self.prediction_details.set_burette_prediction(metadata['yolo_preds'][0]['burette_too_high'])
+        else:
+            self.prediction_details.set_tile_prediction(None)
+            self.prediction_details.set_funnel_prediction(None)
+            self.prediction_details.set_burette_prediction(None)
         
     def predict_video(self, video):
         self.predictor.predict_video(video.get_video_path())
@@ -113,14 +124,22 @@ class mainWindow(ctk.CTk):
     def update_predictions(self):
         if self._active_video != None:
             metadata = self._active_video.get_item_metadata()
+            current_timestamp = self.video_player.get_current_timestamp()//2*2 
             if 'softmax_preds' in metadata:
                 try:
-                    current_timestamp = self.video_player.get_current_timestamp()//2*2 
                     self.prediction_details.set_flask_swirl_probabilities(*metadata['softmax_preds'][current_timestamp])
                 except:
-                    pass
-                    
-        
+                    self.prediction_details.set_flask_swirl_probabilities(0,0,0)
+            if 'yolo_preds' in metadata:
+                try:
+                    self.prediction_details.set_tile_prediction(metadata['yolo_preds'][current_timestamp]['white_tile_present'])
+                    self.prediction_details.set_funnel_prediction(metadata['yolo_preds'][current_timestamp]['funnel_present'])
+                    self.prediction_details.set_burette_prediction(metadata['yolo_preds'][current_timestamp]['burette_too_high'])
+                except:
+                    self.prediction_details.set_tile_prediction(None)
+                    self.prediction_details.set_funnel_prediction(None)
+                    self.prediction_details.set_burette_prediction(None)
+                
 if __name__ == '__main__':
     def on_closing():
         root.predictor.kill_workers()

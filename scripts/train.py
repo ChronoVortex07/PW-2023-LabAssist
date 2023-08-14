@@ -53,9 +53,9 @@ if __name__ == '__main__':
     val_loader = test_dataloader(val_df, batch_size=6, num_workers=0)
     test_loader = test_dataloader(val_df, batch_size=6, num_workers=0)
     
-    # trainer.fit(model, train_loader, val_loader, ckpt_path='checkpoints/last.ckpt') #ckpt_path='checkpoints/last.ckpt'
+    # trainer.fit(model, train_loader, val_loader) #ckpt_path='checkpoints/last.ckpt'
     # trainer.validate(model)
     # model.load_state_dict(torch.load('model.pth', weights_only=True))
-    trainer.test(model, test_loader, ckpt_path='checkpoints/last.ckpt')
+    # trainer.test(model, test_loader, ckpt_path='test.ckpt')
 
-    # torch.save(model.state_dict(), 'model.pth')
+    # torch.save(model.state_dict(), 'model-v2.pth')
