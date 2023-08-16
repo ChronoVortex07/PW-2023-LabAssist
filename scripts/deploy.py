@@ -12,7 +12,7 @@ import numpy as np
 import multiprocessing
 import numbers
 import cv2
-import matplotlib.pyplot as plt
+from collections import Counter
 
 from pytorchvideo.transforms import (
     ApplyTransformToKey, 
@@ -133,16 +133,21 @@ class multiThreadedVideoPredictor:
     def get_progress(self, video_path):
         if video_path not in self._result_dict:
             return 0
-        return len(self._result_dict[video_path]['preds'])/self._result_dict[video_path]['total_preds']*100
+        if self._result_dict[video_path]['yolo_pred'] == None:
+            yolo_progress = 0
+        else:
+            yolo_progress = 1
+        return (len(self._result_dict[video_path]['flask_preds'])+yolo_progress)/self._result_dict[video_path]['total_preds']*100
     
     def get_result(self, video_path):
         # return self._result_dict[video_path]['preds']
         
-        softmax_preds = {x['timestamp']: [round(prob, 2) for prob in x['flask_pred']] for x in self._result_dict[video_path]['preds']}
+        softmax_preds = {x['timestamp']: [round(prob, 2) for prob in x['flask_pred']] for x in self._result_dict[video_path]['flask_preds']}
         sorted_softmax_preds = dict(sorted(softmax_preds.items()))
         flask_preds = [np.argmax(x) for x in sorted_softmax_preds.values()]
-        yolo_preds = dict(sorted({x['timestamp']: x['yolo_pred'] for x in self._result_dict[video_path]['preds']}.items()))
         entropy = [round(self.calculate_entropy(x), 1) for x in sorted_softmax_preds.values()]
+        yolo_pred = self._result_dict[video_path]['yolo_pred']
+        print(yolo_pred)
         for i, e in enumerate(entropy):
             if e > 0.6:
                 flask_preds[i] = 3
@@ -152,7 +157,7 @@ class multiThreadedVideoPredictor:
         # video is labeled as incorrect if there are more than 4s or 40% of the video is labeled as incorrect, whichever is smaller
         # video is labeled as incorrect if more than 60% of the video is labeled as unmoving
         # video is labeled as unsure if more than 30% of the video is labeled as unsure
-        # video is labeled as incorrect if there are more than 8 seconds of funnel being present, white tile being not present or burette being too high while correct or incorrect swirling is occuring
+        # video is labeled as incorrect if funnel is present, white tile is not present or burette is too high while correct or incorrect swirling is occuring
         
         if flask_preds.count(3) > 0.3*len(flask_preds):
             overall_pred = 'Unsure'
@@ -165,19 +170,14 @@ class multiThreadedVideoPredictor:
         else:
             overall_pred = 'Unsure'
             
-        counter = 0
-        for flask_pred, yolo_pred in zip(final_preds, yolo_preds.values()):
-            if flask_pred in ('Correct', 'Incorrect') and (yolo_pred['white_tile_present'] == False or yolo_pred['funnel_present'] == True or yolo_pred['burette_too_high'] == True):
-                counter += 1
-                if counter >= 4:
-                    overall_pred = 'Incorrect'
-                    break
+        if yolo_pred['white_tile_present'] == False or yolo_pred['funnel_present'] == True or yolo_pred['burette_too_high'] == True:
+            overall_pred = 'Incorrect'
             
         return {
             'softmax_preds': sorted_softmax_preds,
             'final_preds': final_preds,
             'overall_pred': overall_pred,
-            'yolo_preds': yolo_preds,
+            'yolo_preds': yolo_pred,
             'entropy': entropy,
         }
         
@@ -206,12 +206,19 @@ class multiThreadedVideoPredictor:
             self._video = EncodedVideo.from_path(self._video_path)
             for timestamp in range(self._video.duration//2):
                 self._waiting_queue.put({
+                    'type': 'action_detection',
                     'timestamp': timestamp*2,
                     'video_path': self._video_path,
                 })
+            self._waiting_queue.put({
+                'type': 'object_detection',
+                'timestamps': list(range(0, 4*self._video.duration//4, self._video.duration//4)),
+                'video_path': self._video_path,
+            })
             self._result_dict[self._video_path] = {
-                'total_preds': self._video.duration//2,
-                'preds': [],
+                'total_preds': self._video.duration//2+1,
+                'flask_preds': [],
+                'yolo_pred': None,
             }
             
     class prediction_worker(multiprocessing.Process):
@@ -231,29 +238,54 @@ class multiThreadedVideoPredictor:
                 task = self._queue.get()
                 if task == None:
                     break
-                else:
+                elif task['type'] == 'action_detection':
                     if self._video_path != task['video_path']:
                         self._video_path = task['video_path']
                         self._video = EncodedVideo.from_path(self._video_path)
                         
                     clip = self._video.get_clip(start_sec=task['timestamp'], end_sec=task['timestamp']+2)
-                    first_image = self.get_image(task['video_path'], task['timestamp'])
-                    first_image = self.pad_and_resize(first_image, (640, 640))
-                    
                     transformed_clip = self._video_transform(clip)
                     inputs = transformed_clip['video'].unsqueeze(0)
                     flask_pred = self._action_model(inputs).detach().cpu().numpy().flatten()
-        
-                    yolo_pred = rel_pos(self._object_model, first_image)
                     
                     updated_preds = self._result_dict[task['video_path']]
-                    updated_preds['preds'].append({
+                    updated_preds['flask_preds'].append({
                         'flask_pred': flask_pred,
                         'timestamp': task['timestamp'],
-                        'yolo_pred': yolo_pred,
                     })
                     self._result_dict[task['video_path']] = updated_preds
                     
+                elif task['type'] == 'object_detection':
+                    if self._video_path != task['video_path']:
+                        self._video_path = task['video_path']
+                        self._video = EncodedVideo.from_path(self._video_path)
+                        
+                    data = []
+                        
+                    for timestamp in task['timestamps']:
+                    
+                        first_image = self.get_image(task['video_path'], timestamp)
+                        first_image = self.pad_and_resize(first_image, (640, 640))
+                        
+                        data.append(rel_pos(self._object_model, first_image))
+                        
+                    # Count occurrences of values for each key
+                    counts = {}
+                    for entry in data:
+                        for key, value in entry.items():
+                            if key not in counts:
+                                counts[key] = Counter()
+                            counts[key][value] += 1
+
+                    # Determine the most common value for each key using argmax
+                    average_preds = {}
+                    for key, count in counts.items():
+                        most_common_value = max(count, key=count.get)
+                        average_preds[key] = most_common_value
+                        
+                    updated_preds = self._result_dict[task['video_path']]
+                    updated_preds['yolo_pred'] = average_preds
+                    self._result_dict[task['video_path']] = updated_preds
         def get_image(self, video_path, timestamp):
             cap = cv2.VideoCapture(video_path)
             fps = cap.get(cv2.CAP_PROP_FPS)
@@ -296,9 +328,9 @@ if __name__ == '__main__':
             progress = new_progress
             print('progress: {:00.0%}'.format(progress/100), end='\r')
     results = predictor.get_result(video_path)
-    print('\noverall prediction:', results['overall_pred'])
-    for i, pred in enumerate(zip(results['final_preds'], results['entropy'], results['yolo_preds'].values())):
-        print('timestamp: {:02d}, prediction: {}, entropy: {}, yolo_preds: {}'.format(i, pred[0], pred[1], pred[2]))
+    print('\noverall prediction:', results['overall_pred'], 'yolo prediction:', results['yolo_preds'])
+    for i, pred in enumerate(zip(results['final_preds'], results['entropy'])):
+        print('timestamp: {:02d}, prediction: {}, entropy: {}'.format(i, pred[0], pred[1]))
 
     print('time taken:', round(time.time()-start_time))
     predictor.kill_workers()

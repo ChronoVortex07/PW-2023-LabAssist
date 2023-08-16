@@ -135,6 +135,19 @@ def rel_pos(model, pic, x_tol=0.25, y_tol=0.1):
             output["burette_too_high"] = False
     return output #main_objs
 
+def plttr(pic: np.ndarray, master: dict, x_tol=0.25, y_tol=0.1, tpe="master"):
+    base = pic.copy()
+    if tpe == "master":
+       objs = [j for i in master.items() for j in i[1]]
+    elif tpe == "main":
+       objs = [i[1] for i in master.items() if i[1] != []]
+    for i in objs:
+       cv2.rectangle(base, (int(i.left), int(i.top)), (int(i.right), int(i.bottom)), (57, 255, 20), 1)
+       cv2.rectangle(base, (int(i.left-x_tol*i.x), int(i.top-y_tol*i.y)), (int(i.right+x_tol*i.x), int(i.bottom+y_tol*i.y)), (31, 199, 0), 1)
+    
+    cv2.imshow("", base)
+    cv2.waitKey(0)
+
 if __name__ == "__main__":
     # Load the video file
     def load_frame_at_duration(video_path,time=0):
@@ -165,7 +178,7 @@ if __name__ == "__main__":
         resized_frame = cv2.resize(padded_frame, desired_size)
         return resized_frame
     
-    video_path = r"C:\Users\zedon\Desktop\PW-samples\S1_unmoving.mp4"
+    video_path = r"C:\Users\zedon\Desktop\PW-samples\S1_incorrect.mp4"
     frame = load_frame_at_duration(video_path, 2)
     resized_frame = pad_and_resize(frame, (640, 640))
     
