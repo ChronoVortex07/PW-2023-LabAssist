@@ -3,7 +3,6 @@ from ultralytics.models.yolo import YOLO
 
 import sys
 sys.path.append('pytorchvideo')
-from pytorchvideo.data.encoded_video import EncodedVideo
 import cv2
 
 class obj:

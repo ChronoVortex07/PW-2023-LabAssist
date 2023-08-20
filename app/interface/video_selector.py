@@ -20,7 +20,7 @@ class VideoSelector(ctk.CTkFrame):
         self.grid_columnconfigure(0, weight=0)
         self.grid_columnconfigure(1, weight=1)
         
-        self._search_icon = ctk.CTkImage(Image.open('src/light/search.png'), Image.open('src/dark/search.png'), (20, 20))
+        self._search_icon = ctk.CTkImage(Image.open('app/src/light/search.png'), Image.open('app/src/dark/search.png'), (20, 20))
         self._search_icon_label = ctk.CTkLabel(self, image=self._search_icon, text=None, corner_radius=0, width=28)
         self._search_icon_label.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
         

@@ -13,7 +13,7 @@ class PredictionDetails(ctk.CTkScrollableFrame):
         self.grid_rowconfigure(0, weight=0)
         self.grid_rowconfigure(1, weight=1)
         
-        self._prediction_icon = ctk.CTkImage(Image.open('src/prediction_icon.png'), size=(24, 24))
+        self._prediction_icon = ctk.CTkImage(Image.open('app/src/prediction_icon.png'), size=(24, 24))
         self._caption_label = ctk.CTkLabel(self, image=self._prediction_icon, text='  Prediction Details', corner_radius=0, height=24, compound='left', font=('Arial', 20, 'bold'), anchor='center', text_color='#FFFFFF')
         self._caption_label.grid(row=0, column=0, sticky='nsew', padx=10, pady=30)
         
@@ -21,7 +21,7 @@ class PredictionDetails(ctk.CTkScrollableFrame):
         self._prediction_frame.grid(row=1, column=0, sticky='nsew', padx=24, pady=24)
         self._prediction_frame.grid_columnconfigure(0, weight=1)
         
-        self._flask_swirl_prediction_caption = ctk.CTkLabel(self._prediction_frame, text='Flask Swirl Prediction', font=('Arial', 16, 'bold'), anchor='center', text_color='#FFFFFF')
+        self._flask_swirl_prediction_caption = ctk.CTkLabel(self._prediction_frame, text='Flask Swirl Prediction (confidence %)', font=('Arial', 16, 'bold'), anchor='center', text_color='#FFFFFF', wraplength=200)
         self._flask_swirl_prediction_caption.grid(row=0, column=0, sticky='nsew', padx=10, pady=10)
         
         self._flask_swirl_prediction_frame = ctk.CTkFrame(self._prediction_frame, corner_radius=10, fg_color=('#778DA9','#1B263B'))
@@ -81,6 +81,7 @@ class PredictionDetails(ctk.CTkScrollableFrame):
         self._session_log = ctk.CTkTextbox(self._prediction_frame, fg_color='black', text_color='white', corner_radius=10, height=500, width=0, font=self._session_log_font)
         self._session_log.grid(row=5, column=0, sticky='nsew', padx=10, pady=10)
         
+        self.toggle_session_log(False)
         self.reset_predictions()
         
     def reset_predictions(self):
@@ -119,6 +120,14 @@ class PredictionDetails(ctk.CTkScrollableFrame):
             self._burette_position_indicator.configure(text='Too high', text_color='#EF476F')
         else:
             self._burette_position_indicator.configure(text='-', text_color='#FFFFFF')
+            
+    def toggle_session_log(self, active = True):
+        if active:
+            self._session_log.grid(row=5, column=0, sticky='nsew', padx=10, pady=10)
+            self._session_log_caption.grid(row=4, column=0, sticky='nsew', padx=10, pady=10)
+        else:
+            self._session_log.grid_forget()
+            self._session_log_caption.grid_forget()
         
     def log(self, text):
         self._session_log.insert('end', '>>> '+text+'\n')

@@ -10,7 +10,7 @@ from prediction_details import PredictionDetails
 from side_bar import SideBar
 from settings_menu import SettingsMenu
 
-from scripts import deploy
+from app.scripts import deploy
 
 class mainWindow(ctk.CTk):
     def __init__(self, fg_color: str | Tuple[str, str] | None = None, **kwargs):
@@ -76,7 +76,7 @@ class mainWindow(ctk.CTk):
                 return float(arr)
             raise TypeError(f"Object of type {type(arr)} is not JSON serializable")
         json_data = {}
-        for video in self.video_selector.video_list:
+        for video in self.video_selector._video_list:
             json_data[video.get_video_path()] = video.get_item_metadata()
         
         # removing illegal things from json

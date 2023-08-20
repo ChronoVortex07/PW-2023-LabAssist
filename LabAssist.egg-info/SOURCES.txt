@@ -1,0 +1,7 @@
+README.md
+setup.py
+LabAssist.egg-info/PKG-INFO
+LabAssist.egg-info/SOURCES.txt
+LabAssist.egg-info/dependency_links.txt
+LabAssist.egg-info/requires.txt
+LabAssist.egg-info/top_level.txt

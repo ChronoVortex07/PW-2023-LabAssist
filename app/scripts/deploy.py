@@ -7,12 +7,12 @@ sys.path.append('pytorchvideo')
 sys.path.append('scripts')
 
 from pytorchvideo.data.encoded_video import EncodedVideo
+from collections import Counter
 import torch
 import numpy as np
 import multiprocessing
 import numbers
 import cv2
-from collections import Counter
 
 from pytorchvideo.transforms import (
     ApplyTransformToKey, 
@@ -27,8 +27,8 @@ from torchvision.transforms import (
     Lambda,
 )
 
-from RelativePosition import rel_pos
-from model import VideoClassifier
+from app.scripts.RelativePosition import rel_pos
+from app.scripts.model import VideoClassifier
 from ultralytics.models.yolo import YOLO
 
 seed = 0
@@ -81,10 +81,10 @@ class multiThreadedVideoPredictor:
         self._num_workers = num_workers
         
         self._action_model = VideoClassifier()
-        self._action_model.load_state_dict(torch.load('models/action_model_v2.pt'))
+        self._action_model.load_state_dict(torch.load('app/models/action_model_v2.pt'))
         self._action_model.eval()
         
-        self._object_model = YOLO("models/object_model_v2.pt")
+        self._object_model = YOLO("app/models/object_model_v2.pt")
         
         self._video_transform = Compose([
             ApplyTransformToKey(key = 'video',
@@ -140,14 +140,20 @@ class multiThreadedVideoPredictor:
         return (len(self._result_dict[video_path]['flask_preds'])+yolo_progress)/self._result_dict[video_path]['total_preds']*100
     
     def get_result(self, video_path):
-        # return self._result_dict[video_path]['preds']
-        
         softmax_preds = {x['timestamp']: [round(prob, 2) for prob in x['flask_pred']] for x in self._result_dict[video_path]['flask_preds']}
         sorted_softmax_preds = dict(sorted(softmax_preds.items()))
         flask_preds = [np.argmax(x) for x in sorted_softmax_preds.values()]
         entropy = [round(self.calculate_entropy(x), 1) for x in sorted_softmax_preds.values()]
         yolo_pred = self._result_dict[video_path]['yolo_pred']
-        print(yolo_pred)
+
+        # Idk why sometimes yolo_pred is None but it is
+        if yolo_pred == None:
+            yolo_pred = {
+                'white_tile_present': None,
+                'funnel_present': None,
+                'burette_too_high': None,
+            }
+        
         for i, e in enumerate(entropy):
             if e > 0.6:
                 flask_preds[i] = 3
@@ -316,7 +322,7 @@ class multiThreadedVideoPredictor:
                         
     
 if __name__ == '__main__':
-    video_path =  r"C:\Users\zedon\Desktop\PW-samples\VID_20230811_144744.mp4" #r"Zedong_fullTitration_1.mp4" #
+    video_path =  r"C:\Users\zedon\Desktop\PW-samples\S5_incorrect.mp4" #r"Zedong_fullTitration_1.mp4" #
     predictor = multiThreadedVideoPredictor(2)
     start_time = time.time()
     predictor.predict_video(video_path)

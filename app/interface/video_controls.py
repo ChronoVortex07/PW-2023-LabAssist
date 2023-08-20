@@ -21,7 +21,7 @@ class VideoControls(ctk.CTkFrame):
         self.grid_columnconfigure(4, weight=1)
         self.grid_rowconfigure(0, weight=1)
         
-        self._fast_backward_image = ctk.CTkImage(Image.open('src/light/fast_backwards.png'), Image.open('src/dark/fast_backwards.png'), size=(24, 24))
+        self._fast_backward_image = ctk.CTkImage(Image.open('app/src/light/fast_backwards.png'), Image.open('app/src/dark/fast_backwards.png'), size=(24, 24))
         self._fast_backward_button = ctk.CTkButton(
             self, text=None, image=self._fast_backward_image, command=self.fast_backward,
             fg_color=('#778DA9','#415A77'),
@@ -30,8 +30,8 @@ class VideoControls(ctk.CTkFrame):
         )
         self._fast_backward_button.grid(row=0, column=0, sticky="ew", padx=5, pady=7)
         
-        self._play_image = ctk.CTkImage(Image.open('src/light/play.png'), Image.open('src/dark/play.png'), size=(22, 22))
-        self._pause_image = ctk.CTkImage(Image.open('src/light/pause.png'), Image.open('src/dark/pause.png'), size=(22, 22))
+        self._play_image = ctk.CTkImage(Image.open('app/src/light/play.png'), Image.open('app/src/dark/play.png'), size=(22, 22))
+        self._pause_image = ctk.CTkImage(Image.open('app/src/light/pause.png'), Image.open('app/src/dark/pause.png'), size=(22, 22))
         self._play_pause_button = ctk.CTkButton(
             self, text=None, image=self._play_image, command=self.play_pause,
             fg_color=('#778DA9','#415A77'),
@@ -40,7 +40,7 @@ class VideoControls(ctk.CTkFrame):
         )
         self._play_pause_button.grid(row=0, column=1, sticky="ew", padx=5, pady=7)
         
-        self._fast_forward_image = ctk.CTkImage(Image.open('src/light/fast_forward.png'), Image.open('src/dark/fast_forward.png'), size=(24, 24))
+        self._fast_forward_image = ctk.CTkImage(Image.open('app/src/light/fast_forward.png'), Image.open('app/src/dark/fast_forward.png'), size=(24, 24))
         self._fast_forward_button = ctk.CTkButton(
             self, text=None, image=self._fast_forward_image, command=self.fast_forward,
             fg_color=('#778DA9','#415A77'),

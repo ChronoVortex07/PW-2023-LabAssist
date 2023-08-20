@@ -12,10 +12,10 @@ class SideBar(ctk.CTkFrame):
         self.grid_rowconfigure((0,1,2), weight=0)
         self.grid_rowconfigure(3, weight=1)
         
-        self._flask_icon = ctk.CTkImage(Image.open('src/light/flask.png'), Image.open('src/dark/flask.png'), (48, 48))
-        self._export_icon = ctk.CTkImage(Image.open('src/light/export.png'), Image.open('src/dark/export.png'), (32, 32))
-        self._import_icon = ctk.CTkImage(Image.open('src/light/import.png'), Image.open('src/dark/import.png'), (32, 32))
-        self._settings_icon = ctk.CTkImage(Image.open('src/light/settings.png'), Image.open('src/dark/settings.png'), (32, 32))
+        self._flask_icon = ctk.CTkImage(Image.open('app/src/light/flask.png'), Image.open('app/src/dark/flask.png'), (48, 48))
+        self._export_icon = ctk.CTkImage(Image.open('app/src/light/export.png'), Image.open('app/src/dark/export.png'), (32, 32))
+        self._import_icon = ctk.CTkImage(Image.open('app/src/light/import.png'), Image.open('app/src/dark/import.png'), (32, 32))
+        self._settings_icon = ctk.CTkImage(Image.open('app/src/light/settings.png'), Image.open('app/src/dark/settings.png'), (32, 32))
         
         self._flask_icon_frame = ctk.CTkFrame(self, width=96, height=96, fg_color=('#415A77','#1B263B'), corner_radius=0)
         self._flask_icon_frame.grid(row=0, column=0, sticky="nsew")
