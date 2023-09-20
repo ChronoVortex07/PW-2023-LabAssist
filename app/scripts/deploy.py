@@ -127,6 +127,11 @@ class multiThreadedVideoPredictor:
         return self._num_workers
     
     def predict_video(self, video_path):
+        if self.get_progress(video_path) > 0 and self.get_progress(video_path) < 100:
+            print('prediction already in progress')
+            return
+        if self.get_progress(video_path) == 100:
+            self.remove_entry(video_path)
         p = self.prep_worker(self._waiting_queue, self._result_dict, video_path)
         p.start()
         
@@ -210,7 +215,12 @@ class multiThreadedVideoPredictor:
             
         def run(self):
             self._video = EncodedVideo.from_path(self._video_path)
-            for timestamp in range(self._video.duration//2):
+            self._result_dict[self._video_path] = {
+                'total_preds': self._video.duration//2+1,
+                'flask_preds': [],
+                'yolo_pred': None,
+            }
+            for timestamp in range(int(self._video.duration//2)):
                 self._waiting_queue.put({
                     'type': 'action_detection',
                     'timestamp': timestamp*2,
@@ -221,11 +231,11 @@ class multiThreadedVideoPredictor:
                 'timestamps': list(range(0, 4*self._video.duration//4, self._video.duration//4)),
                 'video_path': self._video_path,
             })
-            self._result_dict[self._video_path] = {
-                'total_preds': self._video.duration//2+1,
-                'flask_preds': [],
-                'yolo_pred': None,
-            }
+            
+            print('\n'+self._video_path+' added to queue')
+            print('total preds:', self._video.duration//2+1)
+            print('timestamps:', list(range(int(self._video.duration//2))))
+            print('total tasks:', len(list(range(int(self._video.duration//2))))+1)
             
     class prediction_worker(multiprocessing.Process):
         def __init__(self, queue, result_dict, video_transform, action_model, object_model, worker_id):
