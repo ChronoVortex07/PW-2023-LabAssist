@@ -49,12 +49,12 @@ trainer = Trainer(
 )
 
 if __name__ == '__main__':
-    train_loader = train_dataloader(train_df, batch_size=6, num_workers=0)
-    val_loader = test_dataloader(val_df, batch_size=6, num_workers=0)
-    test_loader = test_dataloader(val_df, batch_size=6, num_workers=0)
+    train_loader = train_dataloader('dev/dataset/Train', batch_size=6, num_workers=0)
+    val_loader = test_dataloader('dev/dataset/Test', batch_size=6, num_workers=0)
+    test_loader = test_dataloader('dev/dataset/Test', batch_size=6, num_workers=0)
     
-    # trainer.fit(model, train_loader, val_loader) #ckpt_path='checkpoints/last.ckpt'
-    # trainer.validate(model)
+    trainer.fit(model, train_loader, val_loader) #ckpt_path='checkpoints/last.ckpt'
+    trainer.validate(model)
     # model.load_state_dict(torch.load('model.pth', weights_only=True))
     # trainer.test(model, test_loader, ckpt_path='test.ckpt')
 

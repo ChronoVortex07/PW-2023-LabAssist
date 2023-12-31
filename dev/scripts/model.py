@@ -83,14 +83,14 @@ class VideoClassifier(LightningModule):
         avg_metric = torch.stack(self.validation_step_metric).mean().cpu().numpy().round(2)
         
         # if avg_metric more than metric in checkpoints/best/epoch=xx-acc=xx.ckpt, save checkpoint
-        dir = os.listdir('checkpoints/best')
-        if len(dir) > 0:
-            best_acc = float(dir[0].split('=')[2].split('.')[0])
-            if avg_metric > best_acc:
-                os.remove('checkpoints/best/'+dir[0])
-                self.trainer.save_checkpoint('checkpoints/best/epoch={}-acc={}.ckpt'.format(self.current_epoch, avg_metric))
-        else:
-            self.trainer.save_checkpoint('checkpoints/best/epoch={}-acc={}.ckpt'.format(self.current_epoch, avg_metric))
+        # dir = os.listdir('checkpoints/best')
+        # if len(dir) > 0:
+        #     best_acc = float(dir[0].split('=')[2].split('.')[0])
+        #     if avg_metric > best_acc:
+        #         os.remove('checkpoints/best/'+dir[0])
+        #         self.trainer.save_checkpoint('checkpoints/best/epoch={}-acc={}.ckpt'.format(self.current_epoch, avg_metric))
+        # else:
+        #     self.trainer.save_checkpoint('checkpoints/best/epoch={}-acc={}.ckpt'.format(self.current_epoch, avg_metric))
         
         self.log('val_loss', avg_loss)
         self.log('val_metric', avg_metric)
